@@ -10,11 +10,11 @@ import (
 	"github.com/korosuke613/vitalbridge/store"
 )
 
-// NewMetricsHandler Prometheusメトリクスエンドポイントのハンドラを返す
+// NewMetricsHandler returns an HTTP handler for the Prometheus metrics endpoint.
 func NewMetricsHandler(ms *store.MetricsStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
-			sendError(w, http.StatusMethodNotAllowed, "GETメソッドが必要です")
+			sendError(w, http.StatusMethodNotAllowed, "method not allowed, GET required")
 			return
 		}
 
@@ -23,8 +23,8 @@ func NewMetricsHandler(ms *store.MetricsStore) http.HandlerFunc {
 
 		var b strings.Builder
 
-		// 運用メトリクス
-		b.WriteString("# HELP health_ingest_last_received_timestamp 最後にデータを受信したUNIXタイムスタンプ\n")
+		// Operational metrics
+		b.WriteString("# HELP health_ingest_last_received_timestamp Unix timestamp of last data received\n")
 		b.WriteString("# TYPE health_ingest_last_received_timestamp gauge\n")
 		if !lastReceived.IsZero() {
 			fmt.Fprintf(&b, "health_ingest_last_received_timestamp %d\n", lastReceived.Unix())
@@ -32,15 +32,15 @@ func NewMetricsHandler(ms *store.MetricsStore) http.HandlerFunc {
 			b.WriteString("health_ingest_last_received_timestamp 0\n")
 		}
 
-		b.WriteString("# HELP health_ingest_samples_total 受信したサンプルの累計数\n")
+		b.WriteString("# HELP health_ingest_samples_total Total number of samples received\n")
 		b.WriteString("# TYPE health_ingest_samples_total counter\n")
 		fmt.Fprintf(&b, "health_ingest_samples_total %d\n", totalSamples)
 
-		b.WriteString("# HELP health_ingest_active_metrics 現在保持中のアクティブメトリクス数\n")
+		b.WriteString("# HELP health_ingest_active_metrics Number of currently active metrics\n")
 		b.WriteString("# TYPE health_ingest_active_metrics gauge\n")
 		fmt.Fprintf(&b, "health_ingest_active_metrics %d\n", activeMetrics)
 
-		// メトリクス名ごとにグループ化してHELP/TYPE出力
+		// Group samples by metric name for HELP/TYPE output
 		type metricGroup struct {
 			help    string
 			mtype   string
@@ -51,7 +51,7 @@ func NewMetricsHandler(ms *store.MetricsStore) http.HandlerFunc {
 		for _, sample := range samples {
 			g, ok := groups[sample.Name]
 			if !ok {
-				// 逆引きマップからHELP情報を取得
+				// Look up HELP text from reverse mapping
 				help := sample.Name
 				if m, found := converter.PromNameToMapping[sample.Name]; found {
 					help = m.Help
@@ -67,7 +67,7 @@ func NewMetricsHandler(ms *store.MetricsStore) http.HandlerFunc {
 			g.lines = append(g.lines, line)
 		}
 
-		// メトリクス名でソートして出力
+		// Sort by metric name for stable output
 		names := make([]string, 0, len(groups))
 		for name := range groups {
 			names = append(names, name)
@@ -91,7 +91,7 @@ func NewMetricsHandler(ms *store.MetricsStore) http.HandlerFunc {
 	}
 }
 
-// formatSample メトリクスサンプルをPrometheus text format行に変換
+// formatSample converts a MetricSample to a Prometheus text format line.
 func formatSample(s store.MetricSample) string {
 	if len(s.Labels) == 0 {
 		return fmt.Sprintf("%s %g %d", s.Name, s.Value, s.Timestamp.UnixMilli())

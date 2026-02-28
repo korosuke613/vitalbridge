@@ -4,10 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -20,8 +21,8 @@ import (
 const Version = "0.1.0"
 
 func main() {
-	configPath := flag.String("config", "config/config.yaml", "設定ファイルのパス")
-	showVersion := flag.Bool("version", false, "バージョンを表示")
+	configPath := flag.String("config", "config/config.yaml", "path to config file")
+	showVersion := flag.Bool("version", false, "show version")
 	flag.Parse()
 
 	if *showVersion {
@@ -29,17 +30,24 @@ func main() {
 		return
 	}
 
+	// Bootstrap logger with JSON/stdout defaults (before config is available)
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
 	cfg, err := config.Load(*configPath)
 	if err != nil {
-		log.Fatalf("設定ファイルの読み込みに失敗しました: %v", err)
+		slog.Error("failed to load config", "error", err)
+		os.Exit(1)
 	}
 
-	log.Printf("Health Ingest Service v%s を開始します...", Version)
+	// Re-initialize logger with configured level and format
+	initLogger(&cfg.Log)
 
-	// メトリクスストアを初期化
+	slog.Info("starting service", "version", Version)
+
+	// Initialize metrics store
 	ms := store.NewMetricsStore()
 
-	// ルーティング設定
+	// Set up routes
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/ingest", middleware.BearerAuth(cfg.Auth.APIKey, handlers.NewIngestHandler(ms)))
 	mux.HandleFunc("/api/health", handlers.NewHealthHandler())
@@ -57,7 +65,7 @@ func main() {
 		MaxHeaderBytes:    1 << 20, // 1MB
 	}
 
-	// TTLクリーンアップgoroutine
+	// TTL cleanup goroutine
 	ttl := time.Duration(cfg.Metrics.TTLHours) * time.Hour
 	cleanupInterval := time.Duration(cfg.Metrics.CleanupIntervalMinutes) * time.Minute
 	go func() {
@@ -65,44 +73,49 @@ func main() {
 		defer ticker.Stop()
 		for range ticker.C {
 			ms.CleanExpired(ttl)
-			log.Println("[Cleanup] 期限切れメトリクスのクリーンアップを実行しました")
+			slog.Debug("expired metrics cleanup completed")
 		}
 	}()
 
-	// サーバー起動（非同期）
+	// Start server
 	go func() {
-		log.Printf("[Server] %s で待ち受け開始", addr)
+		slog.Info("listening", "addr", addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("[Server] サーバー起動エラー: %v", err)
+			slog.Error("server failed", "error", err)
+			os.Exit(1)
 		}
 	}()
 
-	// シグナルハンドリング
+	slog.Info("service started")
+
+	// Wait for shutdown signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	log.Println("Health Ingest Service が開始されました。Ctrl+C で停止できます。")
-
 	sig := <-sigChan
-	log.Printf("シグナル %v を受信しました。サービスを停止します...", sig)
+	slog.Info("received signal, shutting down", "signal", sig.String())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Printf("サーバーのシャットダウンに失敗しました: %v", err)
+		slog.Error("server shutdown failed", "error", err)
 	}
 
-	log.Println("Health Ingest Service を停止しました")
+	slog.Info("service stopped")
 }
 
-func init() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
+func initLogger(logCfg *config.LogConfig) {
+	level := logCfg.SlogLevel()
+	opts := &slog.HandlerOptions{Level: level}
 
-	loc, err := time.LoadLocation("Asia/Tokyo")
-	if err != nil {
-		log.Printf("タイムゾーンの設定に失敗しました: %v", err)
-	} else {
-		time.Local = loc
+	var handler slog.Handler
+	switch strings.ToLower(logCfg.Format) {
+	case "text":
+		handler = slog.NewTextHandler(os.Stdout, opts)
+	default:
+		handler = slog.NewJSONHandler(os.Stdout, opts)
 	}
+
+	slog.SetDefault(slog.New(handler))
 }

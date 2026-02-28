@@ -11,3 +11,4 @@ metrics:
 
 log:
   level: "info"
+  format: "json"

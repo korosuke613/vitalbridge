@@ -7,11 +7,11 @@ import (
 	"github.com/korosuke613/vitalbridge/store"
 )
 
-// NewStatusHandler ステータスエンドポイントのハンドラを返す
+// NewStatusHandler returns an HTTP handler for the status endpoint.
 func NewStatusHandler(ms *store.MetricsStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
-			sendError(w, http.StatusMethodNotAllowed, "GETメソッドが必要です")
+			sendError(w, http.StatusMethodNotAllowed, "method not allowed, GET required")
 			return
 		}
 
