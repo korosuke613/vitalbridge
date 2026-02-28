@@ -3,34 +3,34 @@ package converter
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/korosuke613/vitalbridge/store"
 )
 
-// Health Auto Export JSON構造体（複数フォーマット対応）
+// Health Auto Export JSON structures (supports multiple formats)
 
-// wrappedPayload {"data": {"metrics": [...]}} 形式
+// wrappedPayload represents the {"data": {"metrics": [...]}} format.
 type wrappedPayload struct {
 	Data struct {
 		Metrics []rawMetric `json:"metrics"`
 	} `json:"data"`
 }
 
-// metricsPayload {"metrics": [...]} 形式
+// metricsPayload represents the {"metrics": [...]} format.
 type metricsPayload struct {
 	Metrics []rawMetric `json:"metrics"`
 }
 
-// rawMetric 個々のメトリクスエントリ
+// rawMetric represents an individual metric entry.
 type rawMetric struct {
 	Name  string          `json:"name"`
 	Units string          `json:"units"`
 	Data  []rawDataPoint  `json:"data"`
 }
 
-// rawDataPoint データポイント（柔軟なフィールド）
+// rawDataPoint represents a data point with flexible fields.
 type rawDataPoint struct {
 	Date  string   `json:"date"`
 	Qty   *float64 `json:"qty"`
@@ -38,25 +38,25 @@ type rawDataPoint struct {
 	Min   *float64 `json:"Min"`
 	Max   *float64 `json:"Max"`
 	Value *float64 `json:"value"`
-	// sleep_analysis用
+	// sleep_analysis fields
 	Stage     string   `json:"stage"`
 	InBed     *float64 `json:"inBed"`
 	Asleep    *float64 `json:"asleep"`
 }
 
-// Convert Health Auto Export JSONをメトリクスサンプルに変換
+// Convert converts Health Auto Export JSON into metric samples.
 func Convert(payload []byte) ([]store.MetricSample, error) {
 	if len(payload) == 0 {
-		return nil, fmt.Errorf("空のペイロードです")
+		return nil, fmt.Errorf("empty payload")
 	}
 
 	metrics, err := parseMetrics(payload)
 	if err != nil {
-		return nil, fmt.Errorf("JSONのパースに失敗しました: %w", err)
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
 	if len(metrics) == 0 {
-		return nil, fmt.Errorf("メトリクスが含まれていません")
+		return nil, fmt.Errorf("no metrics found")
 	}
 
 	var samples []store.MetricSample
@@ -64,14 +64,14 @@ func Convert(payload []byte) ([]store.MetricSample, error) {
 	for _, m := range metrics {
 		mapping, ok := AllowedMetrics[m.Name]
 		if !ok {
-			log.Printf("[Converter] 未知のメトリクスをスキップ: %s", m.Name)
+			slog.Debug("skipping unknown metric", "name", m.Name)
 			continue
 		}
 
 		for _, dp := range m.Data {
 			ts := parseTimestamp(dp.Date)
 
-			// 基本値（qty or value）
+			// base value (qty or value)
 			var baseValue *float64
 			if dp.Qty != nil {
 				baseValue = dp.Qty
@@ -94,7 +94,7 @@ func Convert(payload []byte) ([]store.MetricSample, error) {
 				})
 			}
 
-			// HasStats=true の場合は avg/min/max も生成
+			// generate avg/min/max samples when HasStats is true
 			if mapping.HasStats {
 				if dp.Avg != nil {
 					samples = append(samples, store.MetricSample{
@@ -125,7 +125,7 @@ func Convert(payload []byte) ([]store.MetricSample, error) {
 				}
 			}
 
-			// sleep_analysis特殊処理
+			// special handling for sleep_analysis
 			if m.Name == "sleep_analysis" {
 				if dp.InBed != nil {
 					samples = append(samples, store.MetricSample{
@@ -152,32 +152,32 @@ func Convert(payload []byte) ([]store.MetricSample, error) {
 	return samples, nil
 }
 
-// parseMetrics 複数のJSONフォーマットに対応してメトリクスを抽出
+// parseMetrics extracts metrics from multiple JSON formats.
 func parseMetrics(payload []byte) ([]rawMetric, error) {
-	// 1. {"data": {"metrics": [...]}} 形式
+	// 1. {"data": {"metrics": [...]}} format
 	var wrapped wrappedPayload
 	if err := json.Unmarshal(payload, &wrapped); err == nil && len(wrapped.Data.Metrics) > 0 {
 		return wrapped.Data.Metrics, nil
 	}
 
-	// 2. {"metrics": [...]} 形式
+	// 2. {"metrics": [...]} format
 	var mp metricsPayload
 	if err := json.Unmarshal(payload, &mp); err == nil && len(mp.Metrics) > 0 {
 		return mp.Metrics, nil
 	}
 
-	// 3. 直接配列 [...] 形式
+	// 3. direct array [...] format
 	var arr []rawMetric
 	if err := json.Unmarshal(payload, &arr); err == nil && len(arr) > 0 {
 		return arr, nil
 	}
 
-	return nil, fmt.Errorf("認識可能なJSONフォーマットではありません")
+	return nil, fmt.Errorf("unrecognized JSON format")
 }
 
-// parseTimestamp Health Auto Exportの日付文字列をパース
+// parseTimestamp parses date strings from Health Auto Export.
 func parseTimestamp(s string) time.Time {
-	// "2024-01-01 12:00:00 +0900" 形式
+	// "2024-01-01 12:00:00 +0900" format
 	formats := []string{
 		"2006-01-02 15:04:05 -0700",
 		"2006-01-02T15:04:05Z07:00",
@@ -192,6 +192,6 @@ func parseTimestamp(s string) time.Time {
 		}
 	}
 
-	log.Printf("[Converter] 日付のパースに失敗、現在時刻を使用: %s", s)
+	slog.Warn("failed to parse timestamp, using current time", "raw", s)
 	return time.Now()
 }

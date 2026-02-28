@@ -1,6 +1,6 @@
 package converter
 
-// MetricMapping メトリクス名マッピング定義
+// MetricMapping defines a mapping from Health Auto Export metric name to Prometheus metric.
 type MetricMapping struct {
 	PrometheusName string
 	Type           string // "gauge" or "counter"
@@ -9,7 +9,7 @@ type MetricMapping struct {
 	HasStats       bool   // avg/min/max variants
 }
 
-// AllowedMetrics Health Auto Exportの名前 → Prometheusメトリクスへのマッピング許可リスト
+// AllowedMetrics is the allowlist mapping Health Auto Export names to Prometheus metrics.
 var AllowedMetrics = map[string]MetricMapping{
 	"heart_rate":                    {PrometheusName: "health_heart_rate_bpm", Type: "gauge", Unit: "bpm", Help: "Heart rate in beats per minute", HasStats: true},
 	"resting_heart_rate":            {PrometheusName: "health_resting_heart_rate_bpm", Type: "gauge", Unit: "bpm", Help: "Resting heart rate in beats per minute"},
@@ -28,7 +28,7 @@ var AllowedMetrics = map[string]MetricMapping{
 	"walking_speed":                 {PrometheusName: "health_walking_speed_mps", Type: "gauge", Unit: "m/s", Help: "Walking speed in meters per second", HasStats: true},
 }
 
-// PromNameToMapping PrometheusNameからMetricMappingへの逆引きマップ
+// PromNameToMapping is a reverse lookup map from Prometheus metric name to MetricMapping.
 var PromNameToMapping map[string]MetricMapping
 
 func init() {
