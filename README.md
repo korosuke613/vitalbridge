@@ -1,29 +1,29 @@
 # vitalbridge
 
-iPhoneヘルスケアデータをPrometheusメトリクスに変換するIngestサービス。iOSアプリ [Health Auto Export](https://apps.apple.com/app/health-auto-export/id1115567461) からWebhookでJSONを受信し、Grafana Alloy経由でGrafana Cloudに可視化する。
+An ingest service that converts iPhone Health data into Prometheus metrics. Receives JSON via webhook from the iOS app [Health Auto Export](https://apps.apple.com/app/health-auto-export/id1115567461) and exposes metrics for Grafana Alloy to scrape into Grafana Cloud.
 
-## アーキテクチャ
+## Architecture
 
 ```
 iPhone (Health Auto Export)
-  → POST /api/ingest (Bearer token認証)
-    → vitalbridge (JSON→Prometheus変換、インメモリ保持)
-      → Grafana Alloy scrapes /metrics (60s間隔)
+  → POST /api/ingest (Bearer token auth)
+    → vitalbridge (JSON → Prometheus conversion, in-memory store)
+      → Grafana Alloy scrapes /metrics (60s interval)
         → Grafana Cloud Prometheus + VictoriaMetrics
 ```
 
-## エンドポイント
+## Endpoints
 
-| Method | Path | Auth | 用途 |
-|--------|------|------|------|
-| `POST` | `/api/ingest` | Bearer token | Webhook受信 |
-| `GET` | `/api/health` | なし | k8s liveness/readiness probe |
-| `GET` | `/metrics` | なし | Prometheus exposition format |
-| `GET` | `/api/status` | Bearer token | デバッグ情報 |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/ingest` | Bearer token | Webhook receiver |
+| `GET` | `/api/health` | None | k8s liveness/readiness probe |
+| `GET` | `/metrics` | None | Prometheus exposition format |
+| `GET` | `/api/status` | Bearer token | Debug information |
 
-## 対応メトリクス
+## Supported Metrics
 
-Health Auto Exportの以下のメトリクスを `health_` プレフィックスのPrometheusメトリクスに変換する（許可リスト方式）。
+The following Health Auto Export metrics are converted to Prometheus metrics with a `health_` prefix (allowlist-based).
 
 | Health Auto Export | Prometheus | Labels |
 |---|---|---|
@@ -43,18 +43,18 @@ Health Auto Exportの以下のメトリクスを `health_` プレフィックス
 | `environmental_audio_exposure` | `health_noise_exposure_db` | `stat={avg,min,max}` |
 | `walking_speed` | `health_walking_speed_mps` | `stat={avg,min,max}` |
 
-運用メトリクス: `health_ingest_last_received_timestamp`, `health_ingest_samples_total`, `health_ingest_active_metrics`
+Operational metrics: `health_ingest_last_received_timestamp`, `health_ingest_samples_total`, `health_ingest_active_metrics`
 
-## セットアップ
+## Setup
 
-### 環境変数
+### Environment Variables
 
-| 変数 | 必須 | 説明 |
-|------|------|------|
-| `HEALTH_INGEST_API_KEY` | Yes | Bearer token認証用APIキー |
-| `TZ` | No | タイムゾーン（デフォルト: `Asia/Tokyo`） |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `HEALTH_INGEST_API_KEY` | Yes | API key for Bearer token authentication |
+| `TZ` | No | Timezone (default: UTC) |
 
-### ローカル実行
+### Local
 
 ```bash
 export HEALTH_INGEST_API_KEY="your-secret-key"
@@ -69,9 +69,9 @@ docker build -t vitalbridge .
 docker run -p 8080:8080 -e HEALTH_INGEST_API_KEY="your-secret-key" vitalbridge
 ```
 
-## 設定
+## Configuration
 
-`config/config.yaml` で設定。環境変数は `${VAR_NAME}` 形式で展開される。
+Configured via `config/config.yaml`. Environment variables are expanded using `${VAR_NAME}` syntax.
 
 ```yaml
 server:
@@ -82,20 +82,21 @@ auth:
   api_key: "${HEALTH_INGEST_API_KEY}"
 
 metrics:
-  ttl_hours: 48                  # メトリクス保持期間
-  cleanup_interval_minutes: 60   # クリーンアップ間隔
+  ttl_hours: 48                  # Metrics retention period
+  cleanup_interval_minutes: 60   # Cleanup interval
 
 log:
   level: "info"                  # debug, info, warn, error
+  format: "json"                 # json, text
 ```
 
-## テスト
+## Testing
 
 ```bash
-# ヘルスチェック
+# Health check
 curl http://localhost:8080/api/health
 
-# サンプルデータ送信
+# Send sample data
 curl -X POST http://localhost:8080/api/ingest \
   -H "Authorization: Bearer your-secret-key" \
   -H "Content-Type: application/json" \
@@ -116,58 +117,58 @@ curl -X POST http://localhost:8080/api/ingest \
     }
   }'
 
-# メトリクス確認
+# Check metrics
 curl http://localhost:8080/metrics
 
-# ステータス確認
+# Check status
 curl -H "Authorization: Bearer your-secret-key" http://localhost:8080/api/status
 ```
 
-## Kubernetes デプロイ
+## Kubernetes Deployment
 
-K8sマニフェストとFlux CD設定は [home-server](https://github.com/korosuke613/home-server) リポジトリの `k8s/health-ingest-service/` で管理。
+K8s manifests and Flux CD configuration are managed in the [home-server](https://github.com/korosuke613/home-server) repository under `k8s/health-ingest-service/`.
 
 ```bash
-# port-forward経由で確認
+# Verify via port-forward
 kubectl -n health-ingest port-forward svc/health-ingest-service 8080:8080
 curl http://localhost:8080/api/health
 ```
 
-## Health Auto Export 設定
+## Health Auto Export Settings
 
-iOSアプリ側の設定:
+iOS app configuration:
 
 - **Automation Destination**: REST API
 - **URL**: `https://health.korosuke613.dev/api/ingest`
 - **Method**: POST
 - **Headers**: `Authorization: Bearer <api-key>`
 - **Export Format**: JSON
-- **Automation interval**: 6〜15分
+- **Automation interval**: 6–15 minutes
 
-## ディレクトリ構成
+## Directory Structure
 
 ```
 vitalbridge/
-├── main.go              # エントリポイント、HTTPサーバー、graceful shutdown
+├── main.go              # Entry point, HTTP server, graceful shutdown
 ├── config/
-│   ├── config.go        # 設定構造体、YAMLローダー、バリデーション
-│   └── config.yaml      # デフォルト設定
+│   ├── config.go        # Config structs, YAML loader, validation
+│   └── config.yaml      # Default configuration
 ├── handlers/
 │   ├── ingest.go        # POST /api/ingest
 │   ├── health.go        # GET /api/health
 │   ├── metrics.go       # GET /metrics (Prometheus text format)
 │   ├── status.go        # GET /api/status
-│   └── response.go      # JSON応答ヘルパー
+│   └── response.go      # JSON response helpers
 ├── store/
-│   └── metrics_store.go # スレッドセーフなインメモリストア (sync.RWMutex)
+│   └── metrics_store.go # Thread-safe in-memory store (sync.RWMutex)
 ├── converter/
-│   ├── health_export.go # Health Auto Export JSON → MetricSample変換
-│   └── metric_names.go  # メトリクス名マッピング（許可リスト）
+│   ├── health_export.go # Health Auto Export JSON → MetricSample conversion
+│   └── metric_names.go  # Metric name mapping (allowlist)
 ├── middleware/
-│   └── auth.go          # Bearer token認証 (crypto/subtle.ConstantTimeCompare)
-└── Dockerfile           # マルチステージビルド (CGO_ENABLED=0)
+│   └── auth.go          # Bearer token auth (crypto/subtle.ConstantTimeCompare)
+└── Dockerfile           # Multi-stage build (CGO_ENABLED=0)
 ```
 
-## ライセンス
+## License
 
 MIT License
