@@ -94,7 +94,7 @@ func NewMetricsHandler(ms *store.MetricsStore) http.HandlerFunc {
 // formatSample converts a MetricSample to a Prometheus text format line.
 func formatSample(s store.MetricSample) string {
 	if len(s.Labels) == 0 {
-		return fmt.Sprintf("%s %g %d", s.Name, s.Value, s.Timestamp.UnixMilli())
+		return fmt.Sprintf("%s %g", s.Name, s.Value)
 	}
 
 	keys := make([]string, 0, len(s.Labels))
@@ -113,5 +113,5 @@ func formatSample(s store.MetricSample) string {
 	}
 	lb.WriteByte('}')
 
-	return fmt.Sprintf("%s%s %g %d", s.Name, lb.String(), s.Value, s.Timestamp.UnixMilli())
+	return fmt.Sprintf("%s%s %g", s.Name, lb.String(), s.Value)
 }
