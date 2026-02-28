@@ -124,6 +124,22 @@ curl http://localhost:8080/metrics
 curl -H "Authorization: Bearer your-secret-key" http://localhost:8080/api/status
 ```
 
+## Release Strategy
+
+Releases are triggered exclusively by GitHub Release events — pushing to `main` does not publish any artifacts.
+
+1. Create a GitHub Release (manually or via `/generate-release` skill in Claude Code)
+2. The `release.yml` workflow automatically:
+   - Builds Go binaries for linux/amd64 and linux/arm64 via [GoReleaser](https://goreleaser.com/)
+   - Builds and pushes multi-arch Docker images to `ghcr.io/korosuke613/vitalbridge`
+
+**Tagging rules:**
+
+| Release type | Example tag | Docker tags | `latest` |
+|---|---|---|---|
+| Stable | `v1.0.0` | `1.0.0`, `1.0`, `latest` | Yes |
+| Release candidate | `v1.0.0-rc.1` | `1.0.0-rc.1` | No |
+
 ## Kubernetes Deployment
 
 K8s manifests and Flux CD configuration are managed in the [home-server](https://github.com/korosuke613/home-server) repository under `k8s/health-ingest-service/`.

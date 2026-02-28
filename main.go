@@ -18,7 +18,7 @@ import (
 	"github.com/korosuke613/vitalbridge/store"
 )
 
-const Version = "0.1.0"
+var version = "dev"
 
 func main() {
 	configPath := flag.String("config", "config/config.yaml", "path to config file")
@@ -26,7 +26,7 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Printf("Health Ingest Service v%s\n", Version)
+		fmt.Printf("vitalbridge v%s\n", version)
 		return
 	}
 
@@ -42,7 +42,7 @@ func main() {
 	// Re-initialize logger with configured level and format
 	initLogger(&cfg.Log)
 
-	slog.Info("starting service", "version", Version)
+	slog.Info("starting service", "version", version)
 
 	// Initialize metrics store
 	ms := store.NewMetricsStore()
