@@ -25,23 +25,29 @@ iPhone (Health Auto Export)
 
 The following Health Auto Export metrics are converted to Prometheus metrics with a `health_` prefix (allowlist-based).
 
-| Health Auto Export | Prometheus | Labels |
-|---|---|---|
-| `heart_rate` | `health_heart_rate_bpm` | `stat={avg,min,max}` |
-| `resting_heart_rate` | `health_resting_heart_rate_bpm` | — |
-| `heart_rate_variability` | `health_heart_rate_variability_ms` | — |
-| `blood_oxygen` | `health_blood_oxygen_ratio` | `stat={avg,min,max}` |
-| `respiratory_rate` | `health_respiratory_rate_per_minute` | `stat={avg,min,max}` |
-| `step_count` | `health_steps_total` | — |
-| `active_energy` | `health_active_energy_kcal` | — |
-| `basal_energy_burned` | `health_basal_energy_kcal` | — |
-| `walking_running_distance` | `health_walking_distance_meters` | — |
-| `flights_climbed` | `health_flights_climbed_total` | — |
-| `sleep_analysis` | `health_sleep_duration_seconds` | `stage={in_bed,asleep,...}` |
-| `apple_exercise_time` | `health_exercise_minutes` | — |
-| `body_temperature` | `health_body_temperature_celsius` | — |
-| `environmental_audio_exposure` | `health_noise_exposure_db` | `stat={avg,min,max}` |
-| `walking_speed` | `health_walking_speed_mps` | `stat={avg,min,max}` |
+| Health Auto Export | Prometheus | Description | Labels |
+|---|---|---|---|
+| `heart_rate` | `health_heart_rate_bpm` | Heart rate (bpm) | `stat={avg,min,max}` |
+| `resting_heart_rate` | `health_resting_heart_rate_bpm` | Resting heart rate (bpm) | — |
+| `heart_rate_variability` | `health_heart_rate_variability_ms` | HRV SDNN (ms) | — |
+| `blood_oxygen_saturation` | `health_blood_oxygen_percent` | SpO2 (%) | `stat={avg,min,max}` |
+| `respiratory_rate` | `health_respiratory_rate_per_minute` | Breaths per minute | `stat={avg,min,max}` |
+| `step_count` | `health_steps_total` | Step count | — |
+| `active_energy` | `health_active_energy_kcal` | Active energy burned (kcal) | — |
+| `basal_energy_burned` | `health_basal_energy_kcal` | Basal metabolic energy (kcal) | — |
+| `walking_running_distance` | `health_walking_distance_meters` | Walk + run distance (m) | — |
+| `flights_climbed` | `health_flights_climbed_total` | Flights of stairs climbed | — |
+| `sleep_analysis` | `health_sleep_duration_seconds` | Sleep duration (s) | `stage={in_bed,asleep,...}` |
+| `apple_exercise_time` | `health_exercise_minutes` | Exercise time (min) | — |
+| `body_temperature` | `health_body_temperature_celsius` | Body temperature (°C) | — |
+| `environmental_audio_exposure` | `health_noise_exposure_db` | Environmental noise (dB) | `stat={avg,min,max}` |
+| `walking_speed` | `health_walking_speed_mps` | Walking speed (m/s) | `stat={avg,min,max}` |
+| `weight_body_mass` | `health_weight_kg` | Body weight (kg) | — |
+| `body_fat_percentage` | `health_body_fat_percent` | Body fat (%) | — |
+| `body_mass_index` | `health_bmi` | BMI (kg/m²) | — |
+| `lean_body_mass` | `health_lean_body_mass_kg` | Lean body mass (kg) | — |
+| `vo2_max` | `health_vo2_max` | VO2 max (ml/kg/min) | — |
+| `walking_heart_rate_average` | `health_walking_heart_rate_avg_bpm` | Walking heart rate avg (bpm) | — |
 
 Operational metrics: `health_ingest_last_received_timestamp`, `health_ingest_samples_total`, `health_ingest_active_metrics`
 

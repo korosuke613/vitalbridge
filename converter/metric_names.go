@@ -14,7 +14,7 @@ var AllowedMetrics = map[string]MetricMapping{
 	"heart_rate":                    {PrometheusName: "health_heart_rate_bpm", Type: "gauge", Unit: "bpm", Help: "Heart rate in beats per minute", HasStats: true},
 	"resting_heart_rate":            {PrometheusName: "health_resting_heart_rate_bpm", Type: "gauge", Unit: "bpm", Help: "Resting heart rate in beats per minute"},
 	"heart_rate_variability":        {PrometheusName: "health_heart_rate_variability_ms", Type: "gauge", Unit: "ms", Help: "Heart rate variability (SDNN) in milliseconds"},
-	"blood_oxygen":                  {PrometheusName: "health_blood_oxygen_ratio", Type: "gauge", Unit: "ratio", Help: "Blood oxygen saturation as ratio", HasStats: true},
+	"blood_oxygen_saturation":       {PrometheusName: "health_blood_oxygen_percent", Type: "gauge", Unit: "%", Help: "Blood oxygen saturation as percentage", HasStats: true},
 	"respiratory_rate":              {PrometheusName: "health_respiratory_rate_per_minute", Type: "gauge", Unit: "per minute", Help: "Respiratory rate in breaths per minute", HasStats: true},
 	"step_count":                    {PrometheusName: "health_steps_total", Type: "gauge", Unit: "steps", Help: "Total step count"},
 	"active_energy":                 {PrometheusName: "health_active_energy_kcal", Type: "gauge", Unit: "kcal", Help: "Active energy burned in kilocalories"},
@@ -26,6 +26,14 @@ var AllowedMetrics = map[string]MetricMapping{
 	"body_temperature":              {PrometheusName: "health_body_temperature_celsius", Type: "gauge", Unit: "celsius", Help: "Body temperature in degrees Celsius"},
 	"environmental_audio_exposure":  {PrometheusName: "health_noise_exposure_db", Type: "gauge", Unit: "dB", Help: "Environmental noise exposure in decibels", HasStats: true},
 	"walking_speed":                 {PrometheusName: "health_walking_speed_mps", Type: "gauge", Unit: "m/s", Help: "Walking speed in meters per second", HasStats: true},
+	// body composition
+	"weight_body_mass":              {PrometheusName: "health_weight_kg", Type: "gauge", Unit: "kg", Help: "Body weight in kilograms"},
+	"body_fat_percentage":           {PrometheusName: "health_body_fat_percent", Type: "gauge", Unit: "%", Help: "Body fat percentage"},
+	"body_mass_index":               {PrometheusName: "health_bmi", Type: "gauge", Unit: "kg/m²", Help: "Body mass index"},
+	"lean_body_mass":                {PrometheusName: "health_lean_body_mass_kg", Type: "gauge", Unit: "kg", Help: "Lean body mass in kilograms"},
+	// cardio fitness
+	"vo2_max":                       {PrometheusName: "health_vo2_max", Type: "gauge", Unit: "ml/(kg·min)", Help: "Maximum oxygen uptake"},
+	"walking_heart_rate_average":    {PrometheusName: "health_walking_heart_rate_avg_bpm", Type: "gauge", Unit: "bpm", Help: "Average heart rate while walking"},
 }
 
 // PromNameToMapping is a reverse lookup map from Prometheus metric name to MetricMapping.
