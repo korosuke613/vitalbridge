@@ -10,5 +10,5 @@ metrics:
   cleanup_interval_minutes: 60
 
 log:
-  level: "info"
+  level: "${LOG_LEVEL:-info}"
   format: "json"

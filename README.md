@@ -58,6 +58,7 @@ Operational metrics: `health_ingest_last_received_timestamp`, `health_ingest_sam
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `HEALTH_INGEST_API_KEY` | Yes | API key for Bearer token authentication |
+| `LOG_LEVEL` | No | Log level: `debug`, `info`, `warn`, `error` (default: `info`) |
 | `TZ` | No | Timezone (default: UTC) |
 
 ### Local
@@ -92,7 +93,7 @@ metrics:
   cleanup_interval_minutes: 60   # Cleanup interval
 
 log:
-  level: "info"                  # debug, info, warn, error
+  level: "${LOG_LEVEL:-info}"    # debug, info, warn, error
   format: "json"                 # json, text
 ```
 
